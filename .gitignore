@@ -1,5 +1,5 @@
-﻿Libraries/libiPhone-lib.a
-build/
+﻿/build/
+Libraries/libiPhone-lib.a
 *.xcarchive
 *.ipa
 .DS_Store
