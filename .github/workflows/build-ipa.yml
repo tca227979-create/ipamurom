@@ -1,0 +1,75 @@
+﻿name: Build iOS IPA
+
+on:
+  push:
+    branches:
+      - ios-build
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios:
+    name: Build IPA
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Merge split library files
+        run: |
+          cd Libraries
+          rm -f libiPhone-lib.a
+          for i in {0..4}; do
+            cat "libiPhone-lib.a.part$i" >> libiPhone-lib.a
+          done
+          rm -f libiPhone-lib.a.part*
+          ls -lh libiPhone-lib.a
+          cd ..
+
+      - name: Select Xcode Version
+        run: |
+          sudo xcode-select -switch /Applications/Xcode_15.4.app 2>/dev/null || sudo xcode-select -switch /Applications/Xcode_16.0.app 2>/dev/null || sudo xcode-select -switch /Applications/Xcode.app 2>/dev/null || true
+          xcodebuild -version
+
+      - name: Build and Archive Xcode Project
+        run: |
+          xcodebuild clean archive \
+            -project Unity-iPhone.xcodeproj \
+            -scheme Unity-iPhone \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Unity-iPhone.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            CODE_SIGNING_INJECT_BASE_ENTITLEMENTS=NO
+
+      - name: Package .app into .ipa
+        run: |
+          mkdir -p Payload
+          cp -r build/Unity-iPhone.xcarchive/Products/Applications/*.app Payload/
+          zip -r -q Unity-iPhone.ipa Payload
+          ls -lh Unity-iPhone.ipa
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unity-iPhone-IPA
+          path: Unity-iPhone.ipa
+          retention-days: 14
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/heads/ios-build')
+        with:
+          tag_name: ios-build-${{ github.run_number }}
+          name: iOS Build #${{ github.run_number }}
+          draft: false
+          prerelease: false
+          files: Unity-iPhone.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
