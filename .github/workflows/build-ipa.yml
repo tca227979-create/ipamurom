@@ -3,7 +3,7 @@
 on:
   push:
     branches:
-      - ios-build
+      - main
   workflow_dispatch:
 
 permissions:
@@ -11,12 +11,8 @@ permissions:
 
 jobs:
   build-ios:
-    name: Build IPA (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-14, macos-15, macos-13]
+    name: Build IPA
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,16 +53,15 @@ jobs:
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Unity-iPhone-IPA-${{ matrix.os }}
+          name: Unity-iPhone-IPA
           path: Unity-iPhone.ipa
           retention-days: 14
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/heads/ios-build')
         with:
-          tag_name: ios-build-${{ github.run_number }}
-          name: iOS Build #${{ github.run_number }}
+          tag_name: v1.0.${{ github.run_number }}
+          name: iOS IPA Build #${{ github.run_number }}
           draft: false
           prerelease: false
           files: Unity-iPhone.ipa
