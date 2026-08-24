@@ -1,0 +1,55 @@
+﻿workflows:
+  unity-ios-build:
+    name: Xcode iOS Pack Workflow
+    max_build_duration: 30
+    instance_type: mac_mini_m1
+    environment:
+      xcode: latest
+      cocoapods: default
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'ios-build'
+        - pattern: 'main'
+    scripts:
+      - name: Ghép các file thư viện lớn (Merge split library files)
+        script: |
+          cd Libraries
+          rm -f libiPhone-lib.a
+          for i in {0..4}; do cat libiPhone-lib.a.part$i >> libiPhone-lib.a
+          done
+          rm -f libiPhone-lib.a.part*
+          
+      - name: Biên dịch Xcode không cần Chứng chỉ Apple (Build Xcode Unsigned)
+        script: |
+          rm -rf build
+          mkdir -p build
+          
+          xcodebuild -project Unity-iPhone.xcodeproj \
+                     -scheme Unity-iPhone \
+                     -configuration Release \
+                     -sdk iphoneos \
+                     CONFIGURATION_BUILD_DIR="$PWD/build" \
+                     CODE_SIGN_IDENTITY="-" \
+                     CODE_SIGNING_REQUIRED=YES \
+                     CODE_SIGNING_ALLOWED=YES \
+                     AD_HOC_CODE_SIGNING_ALLOWED=YES \
+                     build
+
+      - name: Đóng gói thư mục .app thành file .ipa chạy thử (Package IPA)
+        script: |
+          rm -rf Payload
+          mkdir -p Payload
+          cp -r build/*.app Payload/
+          rm -f *.ipa
+          zip -r -q HaiTacMuRom_Unsigned.ipa Payload
+    artifacts:
+      - "*.ipa"
+    publishing:
+      email:
+        recipients:
+          - nhoklangma@gmail.com
+        notify:
+          success: true
+          failure: true
