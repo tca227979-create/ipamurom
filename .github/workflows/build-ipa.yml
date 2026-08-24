@@ -28,6 +28,18 @@ jobs:
           ls -lh libiPhone-lib.a
           cd ..
 
+      - name: Fix IL2CPP architecture paths for Apple Silicon runner
+        run: |
+          cd Il2CppOutputProject/IL2CPP/build
+          if [ -d "deploy_x86_64" ] && [ ! -d "deploy_arm64" ]; then
+            cp -r deploy_x86_64 deploy_arm64
+          fi
+          if [ -d "deploy_arm64/bee_backend/mac-x64" ]; then
+            mkdir -p deploy_arm64/bee_backend/mac-arm64
+            cp -r deploy_arm64/bee_backend/mac-x64/* deploy_arm64/bee_backend/mac-arm64/ 2>/dev/null || true
+          fi
+          cd ../../..
+
       - name: Build Xcode Project
         run: |
           rm -rf build Payload
