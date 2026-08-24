@@ -1,0 +1,17 @@
+﻿name: Test macOS Runner
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ios-build
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - name: Print system info
+        run: |
+          sw_vers
+          xcodebuild -version
+          echo "macOS runner is working!"
